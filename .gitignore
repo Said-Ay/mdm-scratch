@@ -1,0 +1,12 @@
+# Python関連の無視リスト
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# データセットとモデルの重みは重いのでアップしない
+dataset/
+datasets/
+*.pt
+*.pth
+*.ckpt

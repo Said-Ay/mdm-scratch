@@ -10,3 +10,4 @@ datasets/
 *.pt
 *.pth
 *.ckpt
+reference/

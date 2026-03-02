@@ -19,7 +19,7 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         x = x + self.pe[:x.size(1)].transpose(0, 1)
         return self.dropout(x)
-# ↑ここまで追加！
+# ↑ここまで追加
 
 class MDM(nn.Module):
     def __init__(self , num_actions, num_joints , latent_dim = 512 , num_layers = 8):
@@ -66,29 +66,3 @@ class MDM(nn.Module):
         
         return out
     
-# ---------------------------------------------------------
-# テスト運転用コード（ちゃんと動くか確認したら消してOK！）
-# ---------------------------------------------------------
-if __name__ == "__main__":
-    # 1. モデルの準備（アクション数10、関節数22で作ってみる）
-    model = MDM(num_actions=10, num_joints=22)
-    
-    # 2. ダミーの入力データを作る
-    batch_size = 4
-    frames = 60 # 60コマの動き
-    
-    # x: 動きデータ [バッチサイズ, フレーム数, 関節数×3]
-    dummy_x = torch.randn(batch_size, frames, 22 * 3)
-    
-    # t: 時間ステップ [バッチサイズ] (例として、適当に50ステップ目とか)
-    dummy_t = torch.tensor([50, 100, 20, 800]) 
-    
-    # action_class: アクションの番号 [バッチサイズ] (0〜9の適当な数字)
-    dummy_action = torch.tensor([1, 5, 0, 9])
-    
-    # 3. モデルにデータを入れてみる！
-    print("入力 x の形:", dummy_x.shape)
-    output = model(dummy_x, dummy_t, dummy_action)
-    print("出力の形:", output.shape)
-    
-    # 出力が [4, 60, 66] に戻ってきていれば大成功！

@@ -1,6 +1,7 @@
 import torch
 
 class NoiseScheduler:
+    """ノイズスケジューラーを実装。拡散過程のノイズ量を管理するクラス。"""
     def __init__(self, num_timesteps=1000, beta_start=0.0001, beta_end=0.02):
         self.num_timesteps = num_timesteps
         

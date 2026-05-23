@@ -9,12 +9,12 @@ class PositionalEncoding(nn.Module):
     """Transformer の位置エンコーディングを実装。フレーム位置の情報を埋め込むために使用。"""
     def __init__(self, d_model, dropout=0.1, max_len=5000):
         """
-        d_model: 埋め込み次元数 
-        dropout: ドロップアウト率
-        max_len: 位置エンコーディングの最大長（フレーム数の上限）
+        d_model: 埋め込み次元（Transformer の特徴量次元）
+        dropout: ドロップアウト率(過学習を防ぐためランダムにニューロンを無効化する割合)
+        max_len: 最大フレーム数（位置エンコーディングのテーブルサイズ）
         """
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
+        super().__init__() # nn.Module の初期化
+        self.dropout = nn.Dropout(p=dropout) 
     # 位置エンコーディングを事前計算してバッファに登録
         position = torch.arange(max_len).unsqueeze(1)
     # 位置エンコーディングの周波数を計算
@@ -37,22 +37,23 @@ class PositionalEncoding(nn.Module):
 class MDM(nn.Module):
     """
     MDM（Motion Diffusion Model）を実装。Transformer をベースに、アクション条件と時間条件を組み込んだ構造。 
-    入力:
-        x: [B, F, J*3] - 動きデータ（フレーム数 F、関節数 J）
-        t: [B] - ノイズステップ（時間条件）
-        action_class: [B] - アクションID（条件） 
-        出力: [B, F, J*3] - 生成された動きデータ
     """
     def __init__(self , num_actions, num_joints , latent_dim = 512 , num_layers = 8):
         super().__init__()
         # 1. アクションIDをベクトル化する層
+        # action_embedding は、アクションIDを埋め込みベクトルに変換するための層で、num_actions はアクションの種類数、latent_dim は埋め込み次元を表す。これにより、モデルは異なるアクションに対して異なる特徴量を学習できるようになる。
         self.action_embedding = nn.Embedding(num_actions , latent_dim)
         # 2. 時間 t（ノイズステップ）をベクトル化する層
+        # 時間条件は、t を数値として埋め込む方法と、位置エンコーディングのようにフレーム位置に合わせて埋め込む方法がある。ここでは数値を直接埋め込む方法を採用。
         self.time_embedding = nn.Sequential(nn.Linear(1 , latent_dim),nn.SiLU(),nn.Linear(latent_dim , latent_dim))
         # 3. 動きデータを Transformer 次元に射影する入力層
+        # pose 層は、動きデータを Transformer の特徴量次元に変換するための層で、これにより、モデルは動きデータを効果的に処理できるようになる。
         self.pose = nn.Linear(num_joints*3 , latent_dim)
         # 4. メインの Transformer エンコーダー
+        # TransformerEncoderLayer は、Transformer の基本的な構成要素で、自己注意機構とフィードフォワードネットワークを含む。
+        # nhead はマルチヘッド注意のヘッド数を表し、batch_first=True は入力テンソルの形状が (batch, seq, feature) であることを指定する。
         encoder_layer = nn.TransformerEncoderLayer(d_model=latent_dim, nhead=8, batch_first=True)
+        #encoder_layerはTransformerEncoder に渡すための設定オブジェクト。保存不要なのでインスタンス変数にしない
         self.seq_pos_enc = PositionalEncoding(latent_dim, dropout=0.1)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         # 5. 出力を元の動きデータ次元へ戻す射影層
@@ -60,10 +61,15 @@ class MDM(nn.Module):
 
     def forward(self, x, t, action_class):
         """
-        x: [B, F, J*3] - 動きデータ
+        入力:
+        x: [B, F, J*3] - ノイズあり動きデータ（バッチサイズ B、フレーム数 F、関節数 Jのx,y,z座標）
         t: [B] - ノイズステップ（時間条件）
-        action_class: [B] - アクションID（条件）"""
+        action_class: [B] - アクションID（条件） 
+        出力: 
+        [B, F, J*3] - 予測された動きデータ（元の次元に戻す）
+        """
         # 1. 時間とアクションをベクトル化し、フレーム軸を持たせる
+        #unsqueeze(1) は、t と action_class の次元を増やして [B, 1] にするために使用される。
         t_emb = self.time_embedding(t.unsqueeze(1).float()).unsqueeze(1)
         c_emb = self.action_embedding(action_class).unsqueeze(1)
         
@@ -71,9 +77,10 @@ class MDM(nn.Module):
         x_emb = self.pose(x)
         
         # 3. [条件, 時間, 動き] の順で結合
+        #cat は、c_emb、t_emb、x_emb をフレーム軸（dim=1）で結合するために使用される。
         seq = torch.cat([c_emb, t_emb, x_emb], dim=1)
         
-        # 4. 位置エンコーディングを付与
+        # 4. 位置エンコーディングを加える
         seq = self.seq_pos_enc(seq)
         
         # 5. Transformer へ入力

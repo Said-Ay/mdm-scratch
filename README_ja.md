@@ -100,10 +100,12 @@ $a$ はアクション条件です。なぜノイズ予測でなく $x_0$ 予測
 ```
 mdm-scratch/
 ├── model.py          # MDM モデル本体（Transformer + PositionalEncoding）
-├── scheduler.py      # NoiseScheduler（線形ベータスケジュール・add_noise）
-├── train_step.py     # ダミーデータによる 1 ステップ学習
+├── scheduler.py      # NoiseScheduler（線形ベータスケジュール・add_noise・step）
 ├── README.md         # 英語版 README
 ├── README_ja.md      # このファイル（日本語版）
+├── examples/
+│   ├── train_step.py    # デモ：ダミーデータによる 1 ステップ学習
+│   └── sample_step.py   # デモ：1 回サンプリング（逆拡散の動作確認）
 └── docs/
     ├── decisions.md     # 設計判断の記録 English（ADR）
     └── decisions_ja.md  # 設計判断の記録 日本語（ADR）
@@ -122,7 +124,7 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install torch
 
 # 3. 1 ステップ学習を実行
-python train_step.py
+python examples/train_step.py
 ```
 
 期待される出力：

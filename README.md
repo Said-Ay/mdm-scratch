@@ -96,10 +96,12 @@ where $a$ is the action condition. See [docs/decisions.md](docs/decisions.md) fo
 ```
 mdm-scratch/
 ├── model.py          # MDM model: Transformer + PositionalEncoding
-├── scheduler.py      # NoiseScheduler: linear beta schedule, add_noise()
-├── train_step.py     # Single training step with dummy data
+├── scheduler.py      # NoiseScheduler: linear beta schedule, add_noise(), step()
 ├── README.md         # This file (English)
 ├── README_ja.md      # Japanese version
+├── examples/
+│   ├── train_step.py    # Demo: single training step with dummy data
+│   └── sample_step.py   # Demo: single sampling pass (reverse diffusion)
 └── docs/
     ├── decisions.md     # Architecture Decision Records (English)
     └── decisions_ja.md  # Architecture Decision Records (Japanese)
@@ -118,7 +120,7 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install torch
 
 # 3. Run one training step
-python train_step.py
+python examples/train_step.py
 ```
 
 Expected output:

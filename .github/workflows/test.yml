@@ -1,0 +1,28 @@
+name: Run Tests          # GitHub 上での表示名
+
+on: [push, pull_request] # いつ実行するか（push のたびに走る）
+
+jobs:
+  test:                  # ジョブの名前（何でもいい）
+    runs-on: ubuntu-latest  # 実行環境（GitHub の無料 Linux サーバー）
+
+    steps:
+      # 1. リポジトリのコードを取得
+      - uses: actions/checkout@v4 
+
+      # 2. Python をセットアップ
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+        # ↓キャッシュを利用して pip のダウンロードを高速化
+      - uses: actions/cache@v3
+        with:
+            path: ~/.cache/pip
+            key: ${{ runner.os }}-pip-torch
+      # 3. 依存パッケージをインストール
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu 
+        #torch の CPU 版を明示的に指定（--index-url ...）しないと CUDA 版が入ってダウンロードが重くなる
+      - run: pip install pytest
+
+      # 4. テストを実行
+      - run: pytest tests/ -v

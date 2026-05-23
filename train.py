@@ -23,23 +23,26 @@ class HumanAct12Dataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.samples)
     def __getitem__(self,idx):
-        return self.samples[idx], self.labels[idx],torch.tensor(self.labels[idx],dtype=torch.long)
+        return self.samples[idx], torch.tensor(self.labels[idx], dtype=torch.long)
 def train(num_epochs=5,batch_size=16,lr=1e-4,save_path="checkpoints"):
     #lrは学習率lerning rate、save_pathはモデルの保存先ディレクトリを指定する引数です。
     """HumanAct12Dataset を使って MDM をトレーニングする関数。"""
-    print("--- トレーニング開始 ---")
+    device = "cuda" if torch.cuda.is_available() else "cpu"  # GPU があれば使う、なければ CPU
+    print(f"--- トレーニング開始 (device: {device}) ---")
     # --- 1. 準備 ---
     dataset = HumanAct12Dataset("reference/dataset/HumanAct12Poses/humanact12poses.pkl") 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    model = MDM(num_actions=12, num_joints=22)
+    model = MDM(num_actions=12, num_joints=22).to(device)  # モデルをデバイスへ
     scheduler = NoiseScheduler()
     optimizer = Adam(model.parameters(), lr=lr)
     # --- 2. エポックループ ---
     for epoch in range(num_epochs):
         total_loss = 0.0
-        for x_0, action_class, action_class_tensor in dataloader:
+        for x_0, action_class in dataloader:
+            x_0 = x_0.to(device)                  # テンソルをデバイスへ
+            action_class = action_class.to(device)
             batch_size = x_0.size(0) # 現在のバッチのサイズを取得
-            t = torch.randint(0, scheduler.num_timesteps, (batch_size,)) # バッチサイズに合わせてランダムな時間ステップを生成
+            t = torch.randint(0, scheduler.num_timesteps, (batch_size,), device=device) # バッチサイズに合わせてランダムな時間ステップを生成
             noise = torch.randn_like(x_0) # x_0 と同じ形状のノイズを生成
             x_t = scheduler.add_noise(x_0, noise, t) # ノイズを加えて x_t を作成
             optimizer.zero_grad()

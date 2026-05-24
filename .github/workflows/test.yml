@@ -5,10 +5,14 @@ on: [push, pull_request] # いつ実行するか（push のたびに走る）
 jobs:
   test:                  # ジョブの名前（何でもいい）
     runs-on: ubuntu-latest  # 実行環境（GitHub の無料 Linux サーバー）
-
+    env:
+      # 環境変数（必要に応じて追加）
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"  #  JavaScript Actions を Node.js 24 に強制する
     steps:
       # 1. リポジトリのコードを取得
       - uses: actions/checkout@v4 
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # GitHub トークンを使用してリポジトリにアクセス
 
       # 2. Python をセットアップ
       - uses: actions/setup-python@v5

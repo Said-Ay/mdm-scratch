@@ -11,3 +11,5 @@ datasets/
 *.pth
 *.ckpt
 reference/
+# .gitignore に1行追加
+output/

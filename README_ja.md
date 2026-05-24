@@ -1,5 +1,5 @@
 # MDM フルスクラッチ実装
-
+![tests](https://github.com/Said-Ay/mdm-scratch/actions/workflows/test.yml/badge.svg)
 [![arXiv](https://img.shields.io/badge/arXiv-2209.14916-b31b1b.svg)](https://arxiv.org/abs/2209.14916)
 [![Python](https://img.shields.io/badge/Python-3.8+-3776ab.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)

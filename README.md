@@ -97,11 +97,18 @@ where $a$ is the action condition. See [docs/decisions.md](docs/decisions.md) fo
 mdm-scratch/
 ├── model.py          # MDM model: Transformer + PositionalEncoding
 ├── scheduler.py      # NoiseScheduler: linear beta schedule, add_noise(), step()
+├── train.py          # Full training loop on HumanAct12Poses
+├── sample.py         # Inference: load checkpoint and generate motion
 ├── README.md         # This file (English)
 ├── README_ja.md      # Japanese version
 ├── examples/
 │   ├── train_step.py    # Demo: single training step with dummy data
 │   └── sample_step.py   # Demo: single sampling pass (reverse diffusion)
+├── tests/
+│   ├── test_model.py      # Unit tests for MDM
+│   └── test_scheduler.py  # Unit tests for NoiseScheduler
+├── .github/workflows/
+│   └── test.yml      # GitHub Actions CI: runs pytest on push
 └── docs/
     ├── decisions.md     # Architecture Decision Records (English)
     └── decisions_ja.md  # Architecture Decision Records (Japanese)
@@ -119,15 +126,27 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 # 2. Install PyTorch (CPU is fine for this step)
 pip install torch
 
-# 3. Run one training step
+# 3. Run one training step (smoke test)
 python examples/train_step.py
+
+# 4. Run full training on HumanAct12Poses
+python train.py
+
+# 5. Generate motion from a trained checkpoint
+python sample.py --checkpoint checkpoints/mdm_final.pth --action_id 1
+
+# 6. Run unit tests
+pytest tests/ -v
 ```
 
-Expected output:
+Expected output (train.py):
 
 ```
---- トレーニング開始 ---
-完了。Loss: X.XXXX
+--- トレーニング開始 (device: cpu) ---
+Epoch 1/5, Loss: 0.21
+...
+Epoch 5/5, Loss: 0.05
+トレーニング完了。モデルを checkpoints/mdm_final.pth に保存しました。
 ```
 
 ---
@@ -139,11 +158,13 @@ This implementation covers the **core training loop** only.
 | Feature | This repo | `reference/` |
 |---|---|---|
 | Transformer-based denoising model | ✅ | ✅ |
-| Action-conditioned generation | ✅ (dummy labels) | ✅ |
+| Action-conditioned generation | ✅ | ✅ |
 | Forward diffusion (`add_noise`) | ✅ | ✅ |
-| Reverse diffusion (sampling loop) | ❌ | ✅ |
+| Reverse diffusion (sampling loop) | ✅ | ✅ |
+| Full training loop with real data | ✅ (HumanAct12Poses) | ✅ |
+| Unit tests + CI (GitHub Actions) | ✅ | ❌ |
 | Text conditioning (CLIP / BERT) | ❌ | ✅ |
-| Real datasets (HumanML3D, KIT) | ❌ | ✅ |
+| Large-scale datasets (HumanML3D, KIT) | ❌ | ✅ |
 | Evaluation metrics (FID, R-Precision) | ❌ | ✅ |
 | Visualization (SMPL mesh rendering) | ❌ | ✅ |
 

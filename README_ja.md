@@ -101,11 +101,18 @@ $a$ はアクション条件です。なぜノイズ予測でなく $x_0$ 予測
 mdm-scratch/
 ├── model.py          # MDM モデル本体（Transformer + PositionalEncoding）
 ├── scheduler.py      # NoiseScheduler（線形ベータスケジュール・add_noise・step）
+├── train.py          # HumanAct12Poses を使ったフルトレーニングループ
+├── sample.py         # 推論：チェックポイントを読み込んで動きを生成
 ├── README.md         # 英語版 README
 ├── README_ja.md      # このファイル（日本語版）
 ├── examples/
 │   ├── train_step.py    # デモ：ダミーデータによる 1 ステップ学習
 │   └── sample_step.py   # デモ：1 回サンプリング（逆拡散の動作確認）
+├── tests/
+│   ├── test_model.py      # MDM のユニットテスト
+│   └── test_scheduler.py  # NoiseScheduler のユニットテスト
+├── .github/workflows/
+│   └── test.yml      # GitHub Actions CI：push ごとに pytest を実行
 └── docs/
     ├── decisions.md     # 設計判断の記録 English（ADR）
     └── decisions_ja.md  # 設計判断の記録 日本語（ADR）
@@ -123,15 +130,27 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 # 2. PyTorch のインストール（CPU で動作確認可能）
 pip install torch
 
-# 3. 1 ステップ学習を実行
+# 3. 1 ステップ学習を実行（スモークテスト）
 python examples/train_step.py
+
+# 4. HumanAct12Poses でフルトレーニングを実行
+python train.py
+
+# 5. 学習済みチェックポイントから動きを生成
+python sample.py --checkpoint checkpoints/mdm_final.pth --action_id 1
+
+# 6. ユニットテストを実行
+pytest tests/ -v
 ```
 
-期待される出力：
+期待される出力（train.py）：
 
 ```
---- トレーニング開始 ---
-完了。Loss: X.XXXX
+--- トレーニング開始 (device: cpu) ---
+Epoch 1/5, Loss: 0.21
+...
+Epoch 5/5, Loss: 0.05
+トレーニング完了。モデルを checkpoints/mdm_final.pth に保存しました。
 ```
 
 ---
@@ -143,11 +162,13 @@ python examples/train_step.py
 | 機能 | このリポジトリ | `reference/` |
 |---|---|---|
 | Transformer ベースのノイズ除去モデル | ✅ | ✅ |
-| アクション条件付き生成 | ✅（ダミーラベル） | ✅ |
+| アクション条件付き生成 | ✅ | ✅ |
 | フォワード拡散（`add_noise`） | ✅ | ✅ |
-| 逆拡散（サンプリングループ） | ❌ | ✅ |
+| 逆拡散（サンプリングループ） | ✅ | ✅ |
+| 実データによるフルトレーニングループ | ✅（HumanAct12Poses） | ✅ |
+| ユニットテスト + CI（GitHub Actions） | ✅ | ❌ |
 | テキスト条件付け（CLIP / BERT） | ❌ | ✅ |
-| 実データセット（HumanML3D, KIT） | ❌ | ✅ |
+| 大規模データセット（HumanML3D, KIT） | ❌ | ✅ |
 | 評価指標（FID, R-Precision） | ❌ | ✅ |
 | 可視化（SMPL メッシュレンダリング） | ❌ | ✅ |
 

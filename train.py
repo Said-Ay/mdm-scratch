@@ -1,5 +1,5 @@
 import torch
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import DataLoader
 from model import MDM
 from scheduler import NoiseScheduler
 from torch.optim import Adam
@@ -8,23 +8,24 @@ import os
 import torch.nn.functional as F
 
 class HumanAct12Dataset(torch.utils.data.Dataset):
-    def __init__(self,pkl_path,num_flames=60,num_joints=22):
-        data = pickle.load(open(pkl_path,'rb'))
+    def __init__(self,pkl_path,num_frames=60,num_joints=22):
+        with open(pkl_path, 'rb') as f:
+            data = pickle.load(f)
         joints = data["joints3D"] # [N, 24, 3]のnumpy配列
         labels = data["y"] # intのnumpy配列
         self.samples = []
         self.labels = []
         for joints,label in zip(joints,labels) :
-            if joints.shape[0] >= num_flames : # 60フレーム以上あるサンプルだけ使う
-                x = joints[:num_flames,:num_joints,:] # 最初の60フレームを切り取る
-                x = x.reshape(num_flames, num_joints*3) # [60, 22,3]に変形
+            if joints.shape[0] >= num_frames : # 60フレーム以上あるサンプルだけ使う
+                x = joints[:num_frames,:num_joints,:] # 最初の60フレームを切り取る
+                x = x.reshape(num_frames, num_joints*3) # [60, 22,3]に変形
                 self.samples.append(torch.tensor(x, dtype=torch.float32)) # テンソルに変換
                 self.labels.append(label) # ラベルも保存
     def __len__(self):
         return len(self.samples)
     def __getitem__(self,idx):
         return self.samples[idx], torch.tensor(self.labels[idx], dtype=torch.long)
-def train(num_epochs=5,batch_size=16,lr=1e-4,save_path="checkpoints"):
+def train(num_epochs=50,batch_size=16,lr=1e-3,save_path="checkpoints"):
     #lrは学習率lerning rate、save_pathはモデルの保存先ディレクトリを指定する引数です。
     """HumanAct12Dataset を使って MDM をトレーニングする関数。"""
     device = "cuda" if torch.cuda.is_available() else "cpu"  # GPU があれば使う、なければ CPU

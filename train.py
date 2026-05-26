@@ -21,6 +21,11 @@ class HumanAct12Dataset(torch.utils.data.Dataset):
                 x = x.reshape(num_frames, num_joints*3) # [60, 22,3]に変形
                 self.samples.append(torch.tensor(x, dtype=torch.float32)) # テンソルに変換
                 self.labels.append(label) # ラベルも保存
+        # 正規化: 全サンプル・全フレームで共通の mean/std を計算
+        all_data = torch.stack(self.samples)  # [N, F, D]
+        self.mean = all_data.mean()
+        self.std = all_data.std().clamp(min=1e-6)
+        self.samples = [(s - self.mean) / self.std for s in self.samples]
     def __len__(self):
         return len(self.samples)
     def __getitem__(self,idx):
@@ -58,6 +63,7 @@ def train(num_epochs=50,batch_size=16,lr=1e-3,save_path="checkpoints"):
     # --- 3. モデル保存 ---
     os.makedirs(save_path, exist_ok=True)
     torch.save(model.state_dict(), f"{save_path}/mdm_final.pth")
+    torch.save({'mean': dataset.mean, 'std': dataset.std}, f"{save_path}/norm_stats.pt")
     print(f"トレーニング完了。モデルを {save_path}/mdm_final.pth に保存しました。")
 
 

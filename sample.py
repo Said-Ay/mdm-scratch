@@ -24,7 +24,8 @@ def sample(checkpoint,action_id,num_samples,output_path):
             t = torch.full((B,), i, dtype=torch.long).to(device)  # 現在のステップtを全バッチに対して同じ値で作成
             pred_x0 = mdm_model(x_t, t, action_class)  # モデルに現在のx_t、t、action_classを入力してx_0を予測
             x_t = scheduler.step(pred_x0, x_t, t)  # スケジューラーのstep関数を呼び出して次のx_tを計算
-    x_0_generated = x_t.cpu()  # 最終的にx_0が生成される。CPUに移動しておく。
+    stats = torch.load(os.path.join(os.path.dirname(checkpoint), 'norm_stats.pt'), map_location='cpu')
+    x_0_generated = x_t.cpu() * stats['std'] + stats['mean']  # 逆正規化
     os.makedirs(output_path, exist_ok=True)
     output_file = os.path.join(output_path, f"generated_action{action_id}_samples{num_samples}.npy")
     np.save(output_file, x_0_generated.numpy())

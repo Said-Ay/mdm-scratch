@@ -68,11 +68,15 @@ class NoiseScheduler:
         alpha_bar_t = self._extract(self.alphas_cumprod, t, pred_x0.shape)
         alpha_bar_prev = self._extract(self.alphas_cumprod_prev, t, pred_x0.shape)
 
-        # 2. t ステップ目の beta を取り出す
+        # 2. t ステップ目の beta と alpha（1ステップ分）を取り出す
         beta_t = self._extract(self.betas, t, pred_x0.shape)
+        # α_t = 1 − β_t（累積積 ā_t ではなく単ステップの値）
+        alpha_t = self._extract(self.alphas, t, pred_x0.shape)
 
         # 3. μ_θ(x_t, t) を計算する
-        mu_theta = (torch.sqrt(alpha_bar_prev) * beta_t * pred_x0 + torch.sqrt(alpha_bar_t) * (1 - alpha_bar_prev) * x_t) / (1 - alpha_bar_t)
+        # DDPM Eq.(7): μ̃_t = [√ā_{t-1}·β_t·x_0 + √α_t·(1−ā_{t-1})·x_t] / (1−ā_t)
+        # x_t の係数は √α_t（単ステップ）。√ā_t（累積積）ではない。
+        mu_theta = (torch.sqrt(alpha_bar_prev) * beta_t * pred_x0 + torch.sqrt(alpha_t) * (1 - alpha_bar_prev) * x_t) / (1 - alpha_bar_t)
 
         # 4. 事後分散 β̃_t を計算する（リバース1ステップ分の不確かさ）
         # β̃_t = β_t * (1 − ā_{t-1}) / (1 − ā_t)  ← β_t より常に小さい（x_0 の予測情報で不確かさが減る）

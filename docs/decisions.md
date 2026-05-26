@@ -139,7 +139,27 @@ so predicting one uniquely determines the other.
 - Keeping the codebase under ~100 lines per file makes each component easy to read in isolation
 - `reference/` provides the complete, runnable implementation for when real training experiments are needed
 
-**Trade-offs**: This implementation cannot generate meaningful motions — the model has no real signal to learn from. The concrete next steps to make it functional are:
-1. Implement a real data loader for HumanML3D
-2. Replace dummy action labels with CLIP text embeddings (or keep action labels for the action-to-motion task)
-3. Implement the reverse diffusion sampling loop (iterative denoising from $x_T \sim \mathcal{N}(0, I)$)
+**Trade-offs** *(updated)*: The original concern was that the implementation could not generate meaningful motions. All three planned next steps have since been completed:
+1. ~~Implement a real data loader~~ → `HumanAct12Dataset` in `train.py` loads HumanAct12Poses (1,191 clips)
+2. ~~Replace dummy action labels~~ → action-label conditioning is kept (no text encoder needed for the action-to-motion task)
+3. ~~Implement the reverse diffusion sampling loop~~ → `sample.py` iterates 1,000 denoising steps from $x_T \sim \mathcal{N}(0, I)$
+
+Text conditioning (CLIP/BERT) and large-scale datasets (HumanML3D, KIT) remain out of scope by design — the action-to-motion formulation covers the core mechanics without them.
+
+---
+
+## ADR-8: Visualization — matplotlib 3D Skeleton over SMPL Mesh
+
+**Status**: Accepted
+
+**Context**: After training completes, a way to visually inspect generated motions is needed to validate output quality and communicate results. Options range from simple skeleton wireframes to full SMPL body mesh rendering.
+
+**Decision**: Use matplotlib's `Axes3D` to render a 3D wireframe skeleton connected via `KINEMATIC_CHAIN`, saved as an animated GIF via `PillowWriter`.
+
+**Rationale**:
+- Zero extra dependencies beyond matplotlib (already required for loss curves)
+- Generates a GIF in seconds on CPU — no SMPL model files or GPU needed
+- Sufficient for qualitative inspection: joint trajectories, action recognition, and temporal smoothness are all visible
+- Avoids the SMPL body model licensing complexity (SMPL requires a separate registration/download)
+
+**Trade-offs**: SMPL mesh rendering (as in `reference/`) produces photorealistic body surfaces with correct silhouettes, making subtle pose differences more readable. The wireframe skeleton requires careful axis tuning (`set_box_aspect`, y↔z swap) to avoid distortion and is harder to interpret for non-technical viewers. For benchmark presentations or paper figures the SMPL renderer would be preferred; for this learning-focused project the matplotlib approach is appropriate.

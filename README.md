@@ -11,6 +11,14 @@ Minimal PyTorch re-implementation of [**"Human Motion Diffusion Model"**](https:
 
 ---
 
+## Demo
+
+![MDM jump demo](assets/demo_jump.gif)
+
+*Action 3 (jump), trained on HumanAct12Poses for 30,000 epochs on a single RTX 2080 Ti.*
+
+---
+
 ## What Is This?
 
 **MDM** generates human motion sequences (e.g., *a person walks forward*) using a **diffusion model** — a generative approach that learns to reverse a process which gradually corrupts data with noise.
@@ -99,6 +107,7 @@ mdm-scratch/
 ├── scheduler.py      # NoiseScheduler: linear beta schedule, add_noise(), step()
 ├── train.py          # Full training loop on HumanAct12Poses
 ├── sample.py         # Inference: load checkpoint and generate motion
+├── visualise.py      # 3D skeleton visualization → animated GIF (matplotlib)
 ├── README.md         # This file (English)
 ├── README_ja.md      # Japanese version
 ├── examples/
@@ -109,9 +118,11 @@ mdm-scratch/
 │   └── test_scheduler.py  # Unit tests for NoiseScheduler
 ├── .github/workflows/
 │   └── test.yml      # GitHub Actions CI: runs pytest on push
-└── docs/
-    ├── decisions.md     # Architecture Decision Records (English)
-    └── decisions_ja.md  # Architecture Decision Records (Japanese)
+├── docs/
+│   ├── decisions.md     # Architecture Decision Records (English)
+│   └── decisions_ja.md  # Architecture Decision Records (Japanese)
+└── assets/
+    └── demo_jump.gif    # Generated motion demo (action 3: jump)
 ```
 
 ---
@@ -133,19 +144,24 @@ python examples/train_step.py
 python train.py
 
 # 5. Generate motion from a trained checkpoint
-python sample.py --checkpoint checkpoints/mdm_final.pth --action_id 1
+python sample.py --checkpoint checkpoints/mdm_final.pth --action_id 3
 
-# 6. Run unit tests
+# 6. Visualize generated motion as an animated GIF
+python visualise.py --input output/generated_action3_samples4.npy --output assets/demo.gif --title "MDM - Jump"
+
+# 7. Run unit tests
 pytest tests/ -v
 ```
 
 Expected output (train.py):
 
 ```
---- トレーニング開始 (device: cpu) ---
-Epoch 1/5, Loss: 0.21
+--- トレーニング開始 (device: cuda) ---
+Epoch 1/30000, Loss: 0.5234  MSE: 0.0476  Vel: 0.0476
 ...
-Epoch 5/5, Loss: 0.05
+Epoch 5000/30000, Loss: 0.0312  MSE: 0.0028  Vel: 0.0028
+  -> checkpoint: checkpoints/mdm_epoch5000.pth
+...
 トレーニング完了。モデルを checkpoints/mdm_final.pth に保存しました。
 ```
 
@@ -166,9 +182,10 @@ This implementation covers the **core training loop** only.
 | Text conditioning (CLIP / BERT) | ❌ | ✅ |
 | Large-scale datasets (HumanML3D, KIT) | ❌ | ✅ |
 | Evaluation metrics (FID, R-Precision) | ❌ | ✅ |
-| Visualization (SMPL mesh rendering) | ❌ | ✅ |
+| 3D skeleton visualization (matplotlib) | ✅ | ❌ |
+| SMPL mesh rendering | ❌ | ✅ |
 
-The next steps to grow this into a full implementation are documented in [docs/decisions.md — ADR-7](docs/decisions.md#adr-7-simplified-scope--no-text-encoder-no-real-data).
+Design decisions and trade-offs are documented in [docs/decisions.md](docs/decisions.md).
 
 ---
 

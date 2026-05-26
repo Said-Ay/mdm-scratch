@@ -11,6 +11,14 @@
 
 ---
 
+## デモ
+
+![MDM ジャンプデモ](assets/demo_jump.gif)
+
+*アクション 3（ジャンプ）、HumanAct12Poses で 30,000 エポック学習、RTX 2080 Ti 1 枚。*
+
+---
+
 ## これは何？
 
 **MDM** は「人物が前に歩く」といった**人間の動作シーケンスを生成する**モデルです。生成には**拡散モデル（Diffusion Model）**という手法を使っています。
@@ -103,6 +111,7 @@ mdm-scratch/
 ├── scheduler.py      # NoiseScheduler（線形ベータスケジュール・add_noise・step）
 ├── train.py          # HumanAct12Poses を使ったフルトレーニングループ
 ├── sample.py         # 推論：チェックポイントを読み込んで動きを生成
+├── visualise.py      # 3D スケルトン可視化 → アニメーション GIF（matplotlib）
 ├── README.md         # 英語版 README
 ├── README_ja.md      # このファイル（日本語版）
 ├── examples/
@@ -113,9 +122,11 @@ mdm-scratch/
 │   └── test_scheduler.py  # NoiseScheduler のユニットテスト
 ├── .github/workflows/
 │   └── test.yml      # GitHub Actions CI：push ごとに pytest を実行
-└── docs/
-    ├── decisions.md     # 設計判断の記録 English（ADR）
-    └── decisions_ja.md  # 設計判断の記録 日本語（ADR）
+├── docs/
+│   ├── decisions.md     # 設計判断の記録 English（ADR）
+│   └── decisions_ja.md  # 設計判断の記録 日本語（ADR）
+└── assets/
+    └── demo_jump.gif    # 生成モーションのデモ（アクション 3: ジャンプ）
 ```
 
 ---
@@ -137,19 +148,24 @@ python examples/train_step.py
 python train.py
 
 # 5. 学習済みチェックポイントから動きを生成
-python sample.py --checkpoint checkpoints/mdm_final.pth --action_id 1
+python sample.py --checkpoint checkpoints/mdm_final.pth --action_id 3
 
-# 6. ユニットテストを実行
+# 6. 生成した動きをアニメーション GIF で可視化
+python visualise.py --input output/generated_action3_samples4.npy --output assets/demo.gif --title "MDM - Jump"
+
+# 7. ユニットテストを実行
 pytest tests/ -v
 ```
 
 期待される出力（train.py）：
 
 ```
---- トレーニング開始 (device: cpu) ---
-Epoch 1/5, Loss: 0.21
+--- トレーニング開始 (device: cuda) ---
+Epoch 1/30000, Loss: 0.5234  MSE: 0.0476  Vel: 0.0476
 ...
-Epoch 5/5, Loss: 0.05
+Epoch 5000/30000, Loss: 0.0312  MSE: 0.0028  Vel: 0.0028
+  -> checkpoint: checkpoints/mdm_epoch5000.pth
+...
 トレーニング完了。モデルを checkpoints/mdm_final.pth に保存しました。
 ```
 
@@ -170,9 +186,10 @@ Epoch 5/5, Loss: 0.05
 | テキスト条件付け（CLIP / BERT） | ❌ | ✅ |
 | 大規模データセット（HumanML3D, KIT） | ❌ | ✅ |
 | 評価指標（FID, R-Precision） | ❌ | ✅ |
-| 可視化（SMPL メッシュレンダリング） | ❌ | ✅ |
+| 3D スケルトン可視化（matplotlib） | ✅ | ❌ |
+| SMPL メッシュレンダリング | ❌ | ✅ |
 
-省略した機能とその理由は [docs/decisions_ja.md — ADR-7](docs/decisions_ja.md#adr-7-スコープの絞り込みテキストエンコーダなし実データなし) を参照してください。
+設計判断とトレードオフの詳細は [docs/decisions_ja.md](docs/decisions_ja.md) を参照してください。
 
 ---
 

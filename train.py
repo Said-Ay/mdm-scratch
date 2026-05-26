@@ -30,7 +30,7 @@ class HumanAct12Dataset(torch.utils.data.Dataset):
         return len(self.samples)
     def __getitem__(self,idx):
         return self.samples[idx], torch.tensor(self.labels[idx], dtype=torch.long)
-def train(num_epochs=3000,batch_size=64,lr=1e-4,save_path="checkpoints"):
+def train(num_epochs=30000,batch_size=64,lr=1e-4,save_path="checkpoints"):
     #lrは学習率lerning rate、save_pathはモデルの保存先ディレクトリを指定する引数です。
     """HumanAct12Dataset を使って MDM をトレーニングする関数。"""
     device = "cuda" if torch.cuda.is_available() else "cpu"  # GPU があれば使う、なければ CPU
@@ -71,11 +71,11 @@ def train(num_epochs=3000,batch_size=64,lr=1e-4,save_path="checkpoints"):
         avg_vel  = total_vel  / len(dataset)
         scheduler_lr.step()
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.4f}  MSE: {avg_mse:.4f}  Vel: {avg_vel:.4f}")
-        if (epoch + 1) % 500 == 0:
+        if (epoch + 1) % 5000 == 0:
             os.makedirs(save_path, exist_ok=True)
             torch.save(model.state_dict(), f"{save_path}/mdm_epoch{epoch+1}.pth")
             torch.save({'mean': dataset.mean, 'std': dataset.std}, f"{save_path}/norm_stats.pt")
-            print(f"  -> チェックポイント保存: {save_path}/mdm_epoch{epoch+1}.pth")
+            print(f"  -> checkpoint: {save_path}/mdm_epoch{epoch+1}.pth")
 
     # --- 3. モデル保存 ---
     os.makedirs(save_path, exist_ok=True)

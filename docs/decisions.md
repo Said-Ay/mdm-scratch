@@ -22,7 +22,7 @@ Each entry follows the format:
 - The official MDM implementation is in PyTorch, so code can be directly cross-referenced
 - PyTorch's eager execution mode makes it easy to inspect tensor shapes and values at any point during development
 - The majority of recent diffusion model and motion generation papers publish PyTorch code
-- Reduces friction when reading or borrowing from `reference/`
+- Reduces friction when cross-referencing the [official implementation](https://github.com/GuyTevet/motion-diffusion-model)
 
 **Trade-offs**: JAX offers XLA compilation for faster training on TPUs and cleaner functional programming style. TensorFlow has better production serving tooling (TF Serving, TFLite). Neither was relevant for this learning-focused, single-GPU implementation.
 
@@ -101,7 +101,7 @@ so predicting one uniquely determines the other.
 **Rationale**:
 - The MDM paper uses a linear schedule
 - Simpler to implement (`torch.linspace`) and reason about
-- Consistent with the reference implementation in `reference/diffusion/`
+- Consistent with the [official implementation](https://github.com/GuyTevet/motion-diffusion-model/tree/master/diffusion)
 - Understanding schedule choice is secondary to understanding the Transformer architecture for the learning goal of this repo
 
 **Trade-offs**: The cosine schedule is generally preferred for image generation because the linear schedule destroys almost all signal near $t = T$, making early denoising steps uninformative. When real motion training is added in the future, switching to cosine could improve sample quality.
@@ -137,7 +137,7 @@ so predicting one uniquely determines the other.
 - The learning goal is to understand diffusion + Transformer mechanics, not to reproduce benchmark numbers
 - CLIP text encoding is an independent preprocessing component; its presence or absence does not change the architecture of the denoising model
 - Keeping the codebase under ~100 lines per file makes each component easy to read in isolation
-- `reference/` provides the complete, runnable implementation for when real training experiments are needed
+- The [official implementation](https://github.com/GuyTevet/motion-diffusion-model) provides the complete, runnable implementation for when real training experiments are needed
 
 **Trade-offs** *(updated)*: The original concern was that the implementation could not generate meaningful motions. All three planned next steps have since been completed:
 1. ~~Implement a real data loader~~ → `HumanAct12Dataset` in `train.py` loads HumanAct12Poses (1,191 clips)
@@ -162,4 +162,4 @@ Text conditioning (CLIP/BERT) and large-scale datasets (HumanML3D, KIT) remain o
 - Sufficient for qualitative inspection: joint trajectories, action recognition, and temporal smoothness are all visible
 - Avoids the SMPL body model licensing complexity (SMPL requires a separate registration/download)
 
-**Trade-offs**: SMPL mesh rendering (as in `reference/`) produces photorealistic body surfaces with correct silhouettes, making subtle pose differences more readable. The wireframe skeleton requires careful axis tuning (`set_box_aspect`, y↔z swap) to avoid distortion and is harder to interpret for non-technical viewers. For benchmark presentations or paper figures the SMPL renderer would be preferred; for this learning-focused project the matplotlib approach is appropriate.
+**Trade-offs**: SMPL mesh rendering (as in the [official implementation](https://github.com/GuyTevet/motion-diffusion-model)) produces photorealistic body surfaces with correct silhouettes, making subtle pose differences more readable. The wireframe skeleton requires careful axis tuning (`set_box_aspect`, y↔z swap) to avoid distortion and is harder to interpret for non-technical viewers. For benchmark presentations or paper figures the SMPL renderer would be preferred; for this learning-focused project the matplotlib approach is appropriate.

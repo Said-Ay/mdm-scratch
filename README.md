@@ -7,7 +7,7 @@
 
 Minimal PyTorch re-implementation of [**"Human Motion Diffusion Model"**](https://arxiv.org/abs/2209.14916) (Tevet et al., ICLR 2023), built from scratch for learning purposes.
 
-> The full official implementation lives in [`reference/`](reference/).
+> The full official implementation is at [GuyTevet/motion-diffusion-model](https://github.com/GuyTevet/motion-diffusion-model).
 
 ---
 
@@ -185,7 +185,7 @@ This implementation covers the **core training loop** only.
 | 3D skeleton visualization (matplotlib) | ✅ | ❌ |
 | SMPL mesh rendering | ❌ | ✅ |
 
-Design decisions and trade-offs are documented in [docs/decisions.md](docs/decisions.md).
+Design decisions and trade-offs are documented in [docs/decisions.md](docs/decisions.md). Feature comparison is against the [official implementation](https://github.com/GuyTevet/motion-diffusion-model).
 
 ---
 

@@ -7,7 +7,7 @@
 
 [**"Human Motion Diffusion Model"**](https://arxiv.org/abs/2209.14916)（Tevet et al., ICLR 2023）の最小 PyTorch 再実装です。論文のコアメカニズムを理解するために一から書きました。
 
-> 公式の完全実装は [`reference/`](reference/) に収録しています。
+> 公式の完全実装は [GuyTevet/motion-diffusion-model](https://github.com/GuyTevet/motion-diffusion-model) にあります。
 
 ---
 
@@ -189,7 +189,7 @@ Epoch 5000/30000, Loss: 0.0312  MSE: 0.0028  Vel: 0.0028
 | 3D スケルトン可視化（matplotlib） | ✅ | ❌ |
 | SMPL メッシュレンダリング | ❌ | ✅ |
 
-設計判断とトレードオフの詳細は [docs/decisions_ja.md](docs/decisions_ja.md) を参照してください。
+設計判断とトレードオフの詳細は [docs/decisions_ja.md](docs/decisions_ja.md) を参照してください。機能比較は[公式実装](https://github.com/GuyTevet/motion-diffusion-model)との対比です。
 
 ---
 

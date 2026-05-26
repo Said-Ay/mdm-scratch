@@ -19,10 +19,10 @@
 **決断**: PyTorch を使用する。
 
 **理由**:
-- 公式の MDM 実装が PyTorch で書かれており、`reference/` のコードと直接対照できる
+- 公式の MDM 実装が PyTorch で書かれており、[公式コード](https://github.com/GuyTevet/motion-diffusion-model)と直接対照できる
 - Eager Execution（逐次実行）のため、任意の場所でテンソルの形状や値を確認しながら開発できる
 - 近年の拡散モデル・モーション生成論文の大半が PyTorch でコードを公開している
-- `reference/` からコードを借用する際の摩擦が最小になる
+- [公式実装](https://github.com/GuyTevet/motion-diffusion-model)を参照・比較する際の摩擦が最小になる
 
 **トレードオフ**: JAX は XLA コンパイルによる高速化やクリーンな関数型スタイルが魅力。TensorFlow は本番サービング（TF Serving, TFLite）が充実している。いずれも学習目的・シングル GPU の本実装には不要。
 
@@ -99,7 +99,7 @@ $$x_t = \sqrt{\bar{\alpha}_t}\, x_0 + \sqrt{1 - \bar{\alpha}_t}\, \varepsilon$$
 **理由**:
 - MDM 論文が線形スケジュールを採用している
 - `torch.linspace` だけで実装できる。シンプルに計算を追いやすい
-- `reference/diffusion/` の実装と一致する
+- [公式の diffusion モジュール](https://github.com/GuyTevet/motion-diffusion-model/tree/master/diffusion)の実装と一致する
 
 **トレードオフ**: コサインスケジュールは画像生成では一般的に優れているとされる（線形では $t = T$ 付近でほぼ全シグナルが消えてしまう）。将来の実データ学習実験ではコサインへの切り替えがサンプル品質を改善する可能性がある。
 
@@ -134,7 +134,7 @@ $$x_t = \sqrt{\bar{\alpha}_t}\, x_0 + \sqrt{1 - \bar{\alpha}_t}\, \varepsilon$$
 - 学習目標は「拡散 + Transformer の仕組みを理解すること」であり、ベンチマーク数値の再現ではない
 - CLIP テキストエンコーダはノイズ除去モデルのアーキテクチャを変えない独立した前処理コンポーネント
 - ファイルあたり約 100 行以内に収めることで、各コンポーネントを単独で読み切れる
-- 完全な訓練・推論が必要なときは `reference/` を使えばよい
+- 完全な訓練・推論が必要なときは[公式実装](https://github.com/GuyTevet/motion-diffusion-model)を使えばよい
 
 **トレードオフ** *（更新済み）*: 当初の懸念は「意味のある動作を生成できない」という点だったが、3 つの次ステップはすべて完了した：
 1. ~~実データローダの実装~~ → `train.py` の `HumanAct12Dataset` が HumanAct12Poses（1,191 クリップ）を読み込む
@@ -159,4 +159,4 @@ $$x_t = \sqrt{\bar{\alpha}_t}\, x_0 + \sqrt{1 - \bar{\alpha}_t}\, \varepsilon$$
 - 関節軌跡・アクション識別・時間的滑らかさの定性確認には十分
 - SMPL ボディモデルのライセンス問題（別途登録・ダウンロードが必要）を回避できる
 
-**トレードオフ**: `reference/` の SMPL メッシュレンダリングは正確なシルエットを持つフォトリアリスティックな体表面を表示でき、細かいポーズの違いが読み取りやすい。ワイヤーフレームスケルトンは歪みを防ぐために軸調整（`set_box_aspect`、y↔z 入れ替え）が必要で、非技術者には読みにくい。論文のベンチマーク発表には SMPL レンダラーが適切だが、この学習目的のプロジェクトでは matplotlib で十分。
+**トレードオフ**: [公式実装](https://github.com/GuyTevet/motion-diffusion-model)の SMPL メッシュレンダリングは正確なシルエットを持つフォトリアリスティックな体表面を表示でき、細かいポーズの違いが読み取りやすい。ワイヤーフレームスケルトンは歪みを防ぐために軸調整（`set_box_aspect`、y↔z 入れ替え）が必要で、非技術者には読みにくい。論文のベンチマーク発表には SMPL レンダラーが適切だが、この学習目的のプロジェクトでは matplotlib で十分。

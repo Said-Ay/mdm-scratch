@@ -37,7 +37,6 @@ motion[:, :, [0, 2]] -= motion[:, 0:1, [0, 2]]
 
 # 床面の高さ調整: 全フレーム通して最低 y を 0 に
 motion[..., 1] -= motion[..., 1].min()
-motion[..., 1] *= 2.0  # 縦方向を引き延ばす
 
 #5. 軸範囲とカラー定数を定義する。軸範囲は全フレームの最大値と最小値で固定し、カラーは関節ごとに異なる色を指定する。
 KINEMATIC_CHAIN = [
@@ -67,7 +66,7 @@ def update(i):
     ax.set_zlim(mins[2], maxs[2])
     
     # 視点固定
-    ax.view_init(elev=120, azim=-90)
+    ax.view_init(elev=15, azim=-90)
     
     # 軸ラベル/目盛 off で見た目クリーン
     ax.set_axis_off()

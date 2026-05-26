@@ -32,8 +32,8 @@ motion = motion.reshape(motion.shape[0], 22, 3)  # [F, 22, 3]
 # HumanAct12 用スケール: 軸反転 + 拡大
 motion = motion * -1.5
 
-# Pelvis (joint 0) の x, z だけを毎フレーム引く → y は保つので床に立つ
-motion[:, :, [0, 2]] -= motion[:, 0:1, [0, 2]]
+# Pelvis (joint 0) のフレーム0位置だけを引く → 以降のフレームは自然に動く
+motion[:, :, [0, 2]] -= motion[0:1, 0:1, [0, 2]]
 
 # 床面の高さ調整: 全フレーム通して最低 y を 0 に
 motion[..., 1] -= motion[..., 1].min()

@@ -48,38 +48,51 @@ KINEMATIC_CHAIN = [
 ]
 COLORS = ["#DD5A37", "#D69E00", "#B75A39", "#FF6D00", "#DDB50E"]
 
+# data: x=左右, y=高さ, z=奥行き → matplotlib は z が上なので y↔z を入れ替える
+motion = motion[:, :, [0, 2, 1]]  # [F, J, (x, depth, height)]
+
 # 軸範囲は全フレーム max/min で固定（カメラぶれ防止）
 mins = motion.min(axis=(0, 1))  # [3]
 maxs = motion.max(axis=(0, 1))
 
-#6. figureとAxesを作成する。Matplotlib を使って、3Dプロットの figure と axes を作成する。
-fig = plt.figure(figsize=(4, 4))
+# 地面パネル用グリッド (z=0 平面)
+gx = np.linspace(mins[0], maxs[0], 2)
+gy = np.linspace(mins[1], maxs[1], 2)
+gxx, gyy = np.meshgrid(gx, gy)
+gzz = np.zeros_like(gxx)
+
+fig = plt.figure(figsize=(5, 6))
 ax = fig.add_subplot(111, projection="3d")
 
-#7. アニメーション関数を定義する。FuncAnimation を使って、各フレームで関節を線でつなげて描画するアニメーション関数を定義する。
 def update(i):
-    ax.clear()  # 前フレームの線を消す（重要）
-    
+    ax.clear()
+
     # 軸範囲を毎回固定
     ax.set_xlim(mins[0], maxs[0])
     ax.set_ylim(mins[1], maxs[1])
     ax.set_zlim(mins[2], maxs[2])
-    
-    # 視点固定
-    ax.view_init(elev=15, azim=-90)
-    
-    # 軸ラベル/目盛 off で見た目クリーン
-    ax.set_axis_off()
-    
+
+    # 正面やや上から: elev=20 で少し見下ろし, azim=0 で正面
+    ax.view_init(elev=20, azim=0)
+
+    # 地面（半透明グレー）
+    ax.plot_surface(gxx, gyy, gzz, alpha=0.15, color="lightgray", linewidth=0)
+
+    # 縦軸（高さ）だけ表示
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    ax.set_zlabel("height")
+    ax.set_xticks([])
+    ax.set_yticks([])
+
     # 各 chain を描画
     for chain_idx, (chain, color) in enumerate(zip(KINEMATIC_CHAIN, COLORS)):
-        linewidth = 4.0 if chain_idx < 2 else 2.0  # 脚は太く
+        linewidth = 4.0 if chain_idx < 2 else 2.0
         xs = motion[i, chain, 0]
         ys = motion[i, chain, 1]
         zs = motion[i, chain, 2]
         ax.plot3D(xs, ys, zs, linewidth=linewidth, color=color)
-    
-    # タイトル
+
     if args.title:
         ax.set_title(f"{args.title} [frame {i}]")
 

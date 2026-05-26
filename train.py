@@ -45,6 +45,8 @@ def train(num_epochs=200,batch_size=64,lr=1e-4,save_path="checkpoints"):
     # --- 2. エポックループ ---
     for epoch in range(num_epochs):
         total_loss = 0.0
+        total_mse = 0.0
+        total_vel = 0.0
         for x_0, action_class in dataloader:
             x_0 = x_0.to(device)                  # テンソルをデバイスへ
             action_class = action_class.to(device)
@@ -61,10 +63,14 @@ def train(num_epochs=200,batch_size=64,lr=1e-4,save_path="checkpoints"):
             loss = mse_loss + 10.0 * velocity_loss
             loss.backward()
             optimizer.step()
-            total_loss += loss.item() * batch_size  # バッチのサイズを掛けて合計損失を更新
+            total_loss += loss.item() * batch_size
+            total_mse  += mse_loss.item() * batch_size
+            total_vel  += velocity_loss.item() * batch_size
         avg_loss = total_loss / len(dataset)
+        avg_mse  = total_mse  / len(dataset)
+        avg_vel  = total_vel  / len(dataset)
         scheduler_lr.step()
-        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.4f}")
+        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.4f}  MSE: {avg_mse:.4f}  Vel: {avg_vel:.4f}")
 
     # --- 3. モデル保存 ---
     os.makedirs(save_path, exist_ok=True)

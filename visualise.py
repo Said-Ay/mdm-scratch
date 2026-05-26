@@ -37,6 +37,7 @@ motion[:, :, [0, 2]] -= motion[:, 0:1, [0, 2]]
 
 # 床面の高さ調整: 全フレーム通して最低 y を 0 に
 motion[..., 1] -= motion[..., 1].min()
+motion[..., 1] *= 2.0  # 縦方向を引き延ばす
 
 #5. 軸範囲とカラー定数を定義する。軸範囲は全フレームの最大値と最小値で固定し、カラーは関節ごとに異なる色を指定する。
 KINEMATIC_CHAIN = [
@@ -53,7 +54,7 @@ mins = motion.min(axis=(0, 1))  # [3]
 maxs = motion.max(axis=(0, 1))
 
 #6. figureとAxesを作成する。Matplotlib を使って、3Dプロットの figure と axes を作成する。
-fig = plt.figure(figsize=(4, 6))
+fig = plt.figure(figsize=(4, 4))
 ax = fig.add_subplot(111, projection="3d")
 
 #7. アニメーション関数を定義する。FuncAnimation を使って、各フレームで関節を線でつなげて描画するアニメーション関数を定義する。

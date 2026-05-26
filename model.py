@@ -76,26 +76,25 @@ class MDM(nn.Module):
         出力: 
         [B, F, J*3] - 予測された動きデータ（元の次元に戻す）
         """
-        # 1. 時間とアクションをベクトル化し、フレーム軸を持たせる
-        #unsqueeze(1) は、t と action_class の次元を増やして [B, 1] にするために使用される。
-        t_emb = self.time_mlp(self._sinusoidal_embedding(t)).unsqueeze(1)  # [B, 1, D]
-        c_emb = self.action_embedding(action_class).unsqueeze(1)
-        
+        # 1. 時間とアクションをベクトル化する
+        t_emb = self.time_mlp(self._sinusoidal_embedding(t))  # [B, D]
+        c_emb = self.action_embedding(action_class)            # [B, D]
+
         # 2. 動きデータを埋め込み次元へ射影
-        x_emb = self.pose(x)
-        
-        # 3. [条件, 時間, 動き] の順で結合
-        #cat は、c_emb、t_emb、x_emb をフレーム軸（dim=1）で結合するために使用される。
-        seq = torch.cat([c_emb, t_emb, x_emb], dim=1)
-        
+        x_emb = self.pose(x)  # [B, F, D]
+
+        # 3. 条件・時間を各フレームトークンに加算（連結ではなく注入）
+        # 連結すると Transformer が先頭2トークンだけ見て全フレーム同一を返す最短経路を学んでしまう。
+        # 加算にすることでフレームトークンだけがシーケンスとなり、各フレームの内容が必ず使われる。
+        x_emb = x_emb + (c_emb + t_emb).unsqueeze(1)  # [B, F, D]
+
         # 4. 位置エンコーディングを加える
-        seq = self.seq_pos_enc(seq)
-        
+        seq = self.seq_pos_enc(x_emb)
+
         # 5. Transformer へ入力
         out = self.transformer(seq)
-        
-        # 6. 先頭の条件・時間トークンを除き、出力射影
-        out = out[:,2:,:]
+
+        # 6. 出力射影（先頭トークン除去は不要になった）
         out = self.output_proj(out)
         
         return out

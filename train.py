@@ -53,13 +53,12 @@ def train(num_epochs=200,batch_size=16,lr=5e-4,save_path="checkpoints"):
             noise = torch.randn_like(x_0) # x_0 と同じ形状のノイズを生成
             x_t = scheduler.add_noise(x_0, noise, t) # ノイズを加えて x_t を作成
             optimizer.zero_grad()
-            predicted_x_0 = model(x_t, t, action_class)# モデルに (x_t, t, action_class) を入れて x_0 を予測
+            predicted_x_0 = model(x_t, t, action_class)
             mse_loss = F.mse_loss(predicted_x_0, x_0)
-            # velocity loss: フレーム間の動き量が正しく学習されるよう正則化。MSE だけだと全フレーム同一姿勢を予測するモード崩壊が起きる。
             vel_pred = predicted_x_0[:, 1:] - predicted_x_0[:, :-1]
             vel_gt   = x_0[:, 1:] - x_0[:, :-1]
             velocity_loss = F.mse_loss(vel_pred, vel_gt)
-            loss = mse_loss + 0.5 * velocity_loss
+            loss = mse_loss + velocity_loss
             loss.backward()
             optimizer.step()
             total_loss += loss.item() * batch_size  # バッチのサイズを掛けて合計損失を更新

@@ -53,7 +53,7 @@ mins = motion.min(axis=(0, 1))  # [3]
 maxs = motion.max(axis=(0, 1))
 
 #6. figureとAxesを作成する。Matplotlib を使って、3Dプロットの figure と axes を作成する。
-fig = plt.figure(figsize=(4, 4))
+fig = plt.figure(figsize=(4, 6))
 ax = fig.add_subplot(111, projection="3d")
 
 #7. アニメーション関数を定義する。FuncAnimation を使って、各フレームで関節を線でつなげて描画するアニメーション関数を定義する。

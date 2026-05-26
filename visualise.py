@@ -71,6 +71,9 @@ def update(i):
     ax.set_xlim(mins[0], maxs[0])
     ax.set_ylim(mins[1], maxs[1])
     ax.set_zlim(mins[2], maxs[2])
+    # 各軸のデータ幅に比例したボックス比率 → 1単位が等長に見える
+    ranges = maxs - mins
+    ax.set_box_aspect(ranges)
 
     # 正面やや上から: elev=20 で少し見下ろし, azim=0 で正面
     ax.view_init(elev=20, azim=0)

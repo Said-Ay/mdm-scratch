@@ -30,7 +30,7 @@ class HumanAct12Dataset(torch.utils.data.Dataset):
         return len(self.samples)
     def __getitem__(self,idx):
         return self.samples[idx], torch.tensor(self.labels[idx], dtype=torch.long)
-def train(num_epochs=50,batch_size=16,lr=1e-3,save_path="checkpoints"):
+def train(num_epochs=200,batch_size=16,lr=5e-4,save_path="checkpoints"):
     #lrは学習率lerning rate、save_pathはモデルの保存先ディレクトリを指定する引数です。
     """HumanAct12Dataset を使って MDM をトレーニングする関数。"""
     device = "cuda" if torch.cuda.is_available() else "cpu"  # GPU があれば使う、なければ CPU
@@ -41,6 +41,7 @@ def train(num_epochs=50,batch_size=16,lr=1e-3,save_path="checkpoints"):
     model = MDM(num_actions=12, num_joints=22).to(device)  # モデルをデバイスへ
     scheduler = NoiseScheduler()
     optimizer = Adam(model.parameters(), lr=lr)
+    scheduler_lr = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=1e-5)
     # --- 2. エポックループ ---
     for epoch in range(num_epochs):
         total_loss = 0.0
@@ -53,11 +54,17 @@ def train(num_epochs=50,batch_size=16,lr=1e-3,save_path="checkpoints"):
             x_t = scheduler.add_noise(x_0, noise, t) # ノイズを加えて x_t を作成
             optimizer.zero_grad()
             predicted_x_0 = model(x_t, t, action_class)# モデルに (x_t, t, action_class) を入れて x_0 を予測
-            loss = F.mse_loss(predicted_x_0, x_0)   # predicted_x_0 と x_0 の MSE Loss を計算
+            mse_loss = F.mse_loss(predicted_x_0, x_0)
+            # velocity loss: フレーム間の動き量が正しく学習されるよう正則化。MSE だけだと全フレーム同一姿勢を予測するモード崩壊が起きる。
+            vel_pred = predicted_x_0[:, 1:] - predicted_x_0[:, :-1]
+            vel_gt   = x_0[:, 1:] - x_0[:, :-1]
+            velocity_loss = F.mse_loss(vel_pred, vel_gt)
+            loss = mse_loss + 0.5 * velocity_loss
             loss.backward()
             optimizer.step()
             total_loss += loss.item() * batch_size  # バッチのサイズを掛けて合計損失を更新
         avg_loss = total_loss / len(dataset)
+        scheduler_lr.step()
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.4f}")
 
     # --- 3. モデル保存 ---

@@ -44,8 +44,10 @@ class MDM(nn.Module):
         # action_embedding は、アクションIDを埋め込みベクトルに変換するための層で、num_actions はアクションの種類数、latent_dim は埋め込み次元を表す。これにより、モデルは異なるアクションに対して異なる特徴量を学習できるようになる。
         self.action_embedding = nn.Embedding(num_actions , latent_dim)
         # 2. 時間 t（ノイズステップ）をベクトル化する層
-        # 時間条件は、t を数値として埋め込む方法と、位置エンコーディングのようにフレーム位置に合わせて埋め込む方法がある。ここでは数値を直接埋め込む方法を採用。
-        self.time_embedding = nn.Sequential(nn.Linear(1 , latent_dim),nn.SiLU(),nn.Linear(latent_dim , latent_dim))
+        # sinusoidal embedding: t を周波数成分に分解して latent_dim 次元のベクトルに変換する。
+        # raw integer (0-999) を直接 Linear に渡すと数値スケールが不安定なため、sin/cos で正規化してから MLP に通す。
+        self.latent_dim = latent_dim
+        self.time_mlp = nn.Sequential(nn.Linear(latent_dim, latent_dim), nn.SiLU(), nn.Linear(latent_dim, latent_dim))
         # 3. 動きデータを Transformer 次元に射影する入力層
         # pose 層は、動きデータを Transformer の特徴量次元に変換するための層で、これにより、モデルは動きデータを効果的に処理できるようになる。
         self.pose = nn.Linear(num_joints*3 , latent_dim)
@@ -59,6 +61,12 @@ class MDM(nn.Module):
         # 5. 出力を元の動きデータ次元へ戻す射影層
         self.output_proj = nn.Linear(latent_dim, num_joints * 3)
 
+    def _sinusoidal_embedding(self, timesteps):
+        half = self.latent_dim // 2
+        freqs = torch.exp(-math.log(10000) * torch.arange(half, device=timesteps.device, dtype=torch.float32) / (half - 1))
+        args = timesteps.float().unsqueeze(1) * freqs.unsqueeze(0)  # [B, half]
+        return torch.cat([args.sin(), args.cos()], dim=-1)  # [B, latent_dim]
+
     def forward(self, x, t, action_class):
         """
         入力:
@@ -70,7 +78,7 @@ class MDM(nn.Module):
         """
         # 1. 時間とアクションをベクトル化し、フレーム軸を持たせる
         #unsqueeze(1) は、t と action_class の次元を増やして [B, 1] にするために使用される。
-        t_emb = self.time_embedding(t.unsqueeze(1).float()).unsqueeze(1)
+        t_emb = self.time_mlp(self._sinusoidal_embedding(t)).unsqueeze(1)  # [B, 1, D]
         c_emb = self.action_embedding(action_class).unsqueeze(1)
         
         # 2. 動きデータを埋め込み次元へ射影

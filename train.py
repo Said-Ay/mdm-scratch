@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from model import MDM
 from scheduler import NoiseScheduler
-from torch.optim import Adam
+from torch.optim import AdamW
 import pickle
 import os
 import torch.nn.functional as F
@@ -30,7 +30,7 @@ class HumanAct12Dataset(torch.utils.data.Dataset):
         return len(self.samples)
     def __getitem__(self,idx):
         return self.samples[idx], torch.tensor(self.labels[idx], dtype=torch.long)
-def train(num_epochs=200,batch_size=16,lr=5e-4,save_path="checkpoints"):
+def train(num_epochs=200,batch_size=64,lr=1e-4,save_path="checkpoints"):
     #lrは学習率lerning rate、save_pathはモデルの保存先ディレクトリを指定する引数です。
     """HumanAct12Dataset を使って MDM をトレーニングする関数。"""
     device = "cuda" if torch.cuda.is_available() else "cpu"  # GPU があれば使う、なければ CPU
@@ -40,7 +40,7 @@ def train(num_epochs=200,batch_size=16,lr=5e-4,save_path="checkpoints"):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     model = MDM(num_actions=12, num_joints=22).to(device)  # モデルをデバイスへ
     scheduler = NoiseScheduler()
-    optimizer = Adam(model.parameters(), lr=lr)
+    optimizer = AdamW(model.parameters(), lr=lr, weight_decay=0.0)
     scheduler_lr = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=1e-5)
     # --- 2. エポックループ ---
     for epoch in range(num_epochs):
@@ -58,7 +58,7 @@ def train(num_epochs=200,batch_size=16,lr=5e-4,save_path="checkpoints"):
             vel_pred = predicted_x_0[:, 1:] - predicted_x_0[:, :-1]
             vel_gt   = x_0[:, 1:] - x_0[:, :-1]
             velocity_loss = F.mse_loss(vel_pred, vel_gt)
-            loss = mse_loss + velocity_loss
+            loss = mse_loss + 10.0 * velocity_loss
             loss.backward()
             optimizer.step()
             total_loss += loss.item() * batch_size  # バッチのサイズを掛けて合計損失を更新

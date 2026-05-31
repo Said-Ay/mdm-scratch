@@ -3,15 +3,15 @@ import torch
 from model import MDM
 from scheduler import NoiseScheduler
 import numpy as np
-import argparse
+import argparse #argparseは、コマンドライン引数を処理するためのPythonの標準ライブラリで、ユーザーがスクリプトを実行する際に引数を指定できるようにするために使用されます。
 
 def sample(checkpoint,action_id,num_samples,output_path):
     """トレーニング済みの MDM を使ってサンプリングを行う関数。"""
     print("--- サンプリング開始 ---")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu" # デバイスの選択（GPU が利用可能なら GPU を使用）
     print(f"Using device: {device}")
-    mdm_model = MDM(num_actions=12, num_joints=22).to(device)
-    mdm_model.load_state_dict(torch.load(checkpoint, map_location=device))
+    mdm_model = MDM(num_actions=12, num_joints=22).to(device) # MDM モデルの初期化とデバイスへの移動
+    mdm_model.load_state_dict(torch.load(checkpoint, map_location=device)) # load_state_dict を使用してトレーニング済みモデルの重みを読み込む
     mdm_model.eval()  # 推論モードに切り替え
     scheduler = NoiseScheduler()
 
@@ -24,9 +24,9 @@ def sample(checkpoint,action_id,num_samples,output_path):
             t = torch.full((B,), i, dtype=torch.long).to(device)  # 現在のステップtを全バッチに対して同じ値で作成
             pred_x0 = mdm_model(x_t, t, action_class)  # モデルに現在のx_t、t、action_classを入力してx_0を予測
             x_t = scheduler.step(pred_x0, x_t, t)  # スケジューラーのstep関数を呼び出して次のx_tを計算
-    stats = torch.load(os.path.join(os.path.dirname(checkpoint), 'norm_stats.pt'), map_location='cpu')
-    x_0_generated = x_t.cpu() * stats['std'] + stats['mean']  # 逆正規化
-    os.makedirs(output_path, exist_ok=True)
+    stats = torch.load(os.path.join(os.path.dirname(checkpoint), 'norm_stats.pt'), map_location='cpu') # statsとは、トレーニングデータの正規化に使用した平均と標準偏差を含む辞書で、'mean'と'std'のキーを持つ
+    x_0_generated = x_t.cpu() * stats['std'] + stats['mean']  # 逆正規化(生成されたx_0を元のスケールに戻す)
+    os.makedirs(output_path, exist_ok=True) 
     output_file = os.path.join(output_path, f"generated_action{action_id}_samples{num_samples}.npy")
     np.save(output_file, x_0_generated.numpy())
     print(f"サンプリング完了。生成されたx_0を {output_file} に保存しました。")

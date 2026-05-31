@@ -8,18 +8,20 @@ class PositionalEncoding(nn.Module):
     """Transformer の位置エンコーディングを実装。フレーム位置の情報を埋め込むために使用。"""
     def __init__(self, d_model, dropout=0.1, max_len=5000):
         super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
-        position = torch.arange(max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-        pe = torch.zeros(max_len, 1, d_model)
+        self.dropout = nn.Dropout(p=dropout) 
+        position = torch.arange(max_len).unsqueeze(1) # position: [max_len, 1]
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))  
+        #周波数は次元ごとに異なり、偶数次元には正弦波、奇数次元には余弦波が使用されるため、div_termはd_modelの半分のサイズになります。
+        #div_termは、位置エンコーディングの周波数を決定するための値
+        pe = torch.zeros(max_len, 1, d_model) #pe: [max_len, 1, d_model]
         pe[:, 0, 0::2] = torch.sin(position * div_term)
         pe[:, 0, 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe)
 
     def forward(self, x):
         # x: [B, F, D]  pe: [max_len, 1, D]
-        pe = cast(torch.Tensor, self.pe)
-        x = x + pe[:x.size(1)].transpose(0, 1)
+        pe = cast(torch.Tensor, self.pe) #peはregister_bufferで登録されているため、self.peはTensor型であることが保証されているが、型ヒントのためにcastを使用して明示的にTensor型にキャストしています。
+        x = x + pe[:x.size(1)].transpose(0, 1) # pe[:x.size(1)]: [F, 1, D] → transpose(0, 1) → [1, F, D] これをxに加算して位置情報を埋め込む
         return self.dropout(x)
 
 
@@ -30,7 +32,7 @@ class MDM(nn.Module):
     - 条件注入: time_emb + action_emb を 1 トークンに合算してシーケンス先頭に連結（Reference と同一）
     - 出力: 先頭 1 トークンを除去して output_proj
     """
-    def __init__(self, num_actions, num_joints, latent_dim=512, num_layers=8):
+    def __init__(self, num_actions, num_joints, latent_dim=512, num_layers=8): # latent_dimはTransformerの埋め込み次元、num_layersはTransformerエンコーダーの層数を指定するための引数で、モデルの表現力や計算コストに影響します。
         super().__init__()
         self.action_embedding = nn.Embedding(num_actions, latent_dim)
         # Reference の TimestepEmbedder: PE テーブルを t でインデックス → Linear-SiLU-Linear
@@ -39,9 +41,9 @@ class MDM(nn.Module):
             nn.Linear(latent_dim, latent_dim),
             nn.SiLU(),
             nn.Linear(latent_dim, latent_dim),
-        )
-        self.pose = nn.Linear(num_joints * 3, latent_dim)
-        encoder_layer = nn.TransformerEncoderLayer(d_model=latent_dim, nhead=8, batch_first=True)
+        ) # 時間埋め込み用のMLP
+        self.pose = nn.Linear(num_joints * 3, latent_dim) # フレームごとの関節位置を埋め込み次元に射影
+        encoder_layer = nn.TransformerEncoderLayer(d_model=latent_dim, nhead=8, batch_first=True) #selfがつかない
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.output_proj = nn.Linear(latent_dim, num_joints * 3)
 
@@ -55,7 +57,7 @@ class MDM(nn.Module):
         t_pe = pe[t].squeeze(1)           # [B, D]
         t_emb = self.time_embed(t_pe)     # [B, D]
 
-        # 2. アクション埋め込み
+        # 2. アクション埋め込み: action_class → Embedding
         c_emb = self.action_embedding(action_class)  # [B, D]
 
         # 3. 条件トークン 1 個 = time_emb + action_emb  (Reference と同一)

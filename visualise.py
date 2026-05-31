@@ -32,7 +32,7 @@ motion = motion.reshape(motion.shape[0], 22, 3)  # [F, 22, 3]
 # HumanAct12 用スケール: 軸反転 + 拡大
 motion = motion * -1.5
 
-# Pelvis (joint 0) のフレーム0位置だけを引く → 以降のフレームは自然に動く
+# Pelvis (joint 0) のフレーム0位置だけを引く → 以降のフレームは相対位置になる
 motion[:, :, [0, 2]] -= motion[0:1, 0:1, [0, 2]]
 
 # 床面の高さ調整: 全フレーム通して最低 y を 0 に
@@ -61,8 +61,8 @@ gy = np.linspace(mins[1], maxs[1], 2)
 gxx, gyy = np.meshgrid(gx, gy)
 gzz = np.zeros_like(gxx)
 
-fig = plt.figure(figsize=(5, 6))
-ax = fig.add_subplot(111, projection="3d")
+fig = plt.figure(figsize=(5, 6)) #figsizeはインチ単位で、横5インチ、縦6インチのサイズの図を作成します。
+ax = fig.add_subplot(111, projection="3d") 
 
 def update(i):
     ax.clear()
@@ -90,13 +90,13 @@ def update(i):
 
     # 各 chain を描画
     for chain_idx, (chain, color) in enumerate(zip(KINEMATIC_CHAIN, COLORS)):
-        linewidth = 4.0 if chain_idx < 2 else 2.0
+        linewidth = 4.0 if chain_idx < 2 else 2.0 # 脚は太め、背骨と腕は細め
         xs = motion[i, chain, 0]
         ys = motion[i, chain, 1]
         zs = motion[i, chain, 2]
         ax.plot3D(xs, ys, zs, linewidth=linewidth, color=color)
 
-    if args.title:
+    if args.title: # タイトルが指定されていれば、フレーム番号とともに表示
         ax.set_title(f"{args.title} [frame {i}]")
 
 #8. アニメーションを保存する。FuncAnimation を使って、定義したアニメーション関数を呼び出し、GIFファイルとして保存する。

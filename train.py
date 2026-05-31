@@ -12,26 +12,26 @@ class HumanAct12Dataset(torch.utils.data.Dataset):
         with open(pkl_path, 'rb') as f:
             data = pickle.load(f)
         joints = data["joints3D"] # [N, 24, 3]のnumpy配列
-        labels = data["y"] # intのnumpy配列
+        labels = data["y"] # intのnumpy配列.各要素は0-11の整数で、12クラスのアクションラベルを表す。0=warm_up, 1=walk, 2=run, 3=jump, 4=drink, 5=lift_dumbbell, 6=sit, 7=eat, 8=turn_steering_wheel, 9=phone, 10=boxing, 11=throw
         self.samples = []
         self.labels = []
         for joints,label in zip(joints,labels) :
             if joints.shape[0] >= num_frames : # 60フレーム以上あるサンプルだけ使う
                 x = joints[:num_frames,:num_joints,:] # 最初の60フレームを切り取る
-                x = x.reshape(num_frames, num_joints*3) # [60, 22,3]に変形
+                x = x.reshape(num_frames, num_joints*3) # [60, 22, 3] → [60, 66] にフラット化
                 self.samples.append(torch.tensor(x, dtype=torch.float32)) # テンソルに変換
                 self.labels.append(label) # ラベルも保存
         # 正規化: 全サンプル・全フレームで共通の mean/std を計算
         all_data = torch.stack(self.samples)  # [N, F, D]
         self.mean = all_data.mean()
-        self.std = all_data.std().clamp(min=1e-6)
-        self.samples = [(s - self.mean) / self.std for s in self.samples]
+        self.std = all_data.std().clamp(min=1e-6) 
+        self.samples = [(s - self.mean) / self.std for s in self.samples] # 各サンプルを正規化
     def __len__(self):
         return len(self.samples)
     def __getitem__(self,idx):
-        return self.samples[idx], torch.tensor(self.labels[idx], dtype=torch.long)
+        return self.samples[idx], torch.tensor(self.labels[idx], dtype=torch.long) 
 def train(num_epochs=30000,batch_size=64,lr=1e-4,save_path="checkpoints"):
-    #lrは学習率lerning rate、save_pathはモデルの保存先ディレクトリを指定する引数です。
+    #lrは学習率learning rate、save_pathはモデルの保存先ディレクトリを指定する引数です。
     """HumanAct12Dataset を使って MDM をトレーニングする関数。"""
     device = "cuda" if torch.cuda.is_available() else "cpu"  # GPU があれば使う、なければ CPU
     print(f"--- トレーニング開始 (device: {device}) ---")
@@ -45,7 +45,7 @@ def train(num_epochs=30000,batch_size=64,lr=1e-4,save_path="checkpoints"):
     # --- 2. エポックループ ---
     for epoch in range(num_epochs):
         total_loss = 0.0
-        total_mse = 0.0
+        total_mse = 0.0 
         total_vel = 0.0
         for x_0, action_class in dataloader:
             x_0 = x_0.to(device)                  # テンソルをデバイスへ
@@ -57,21 +57,21 @@ def train(num_epochs=30000,batch_size=64,lr=1e-4,save_path="checkpoints"):
             optimizer.zero_grad()
             predicted_x_0 = model(x_t, t, action_class)
             mse_loss = F.mse_loss(predicted_x_0, x_0)
-            vel_pred = predicted_x_0[:, 1:] - predicted_x_0[:, :-1]
-            vel_gt   = x_0[:, 1:] - x_0[:, :-1]
+            vel_pred = predicted_x_0[:, 1:] - predicted_x_0[:, :-1] 
+            vel_gt   = x_0[:, 1:] - x_0[:, :-1] # 関節位置の差分を取ることで、関節の速度を表すテンソルを作成しています。これにより、モデルが単に位置を予測するだけでなく、動きのダイナミクスも学習できるようになります。
             velocity_loss = F.mse_loss(vel_pred, vel_gt)
-            loss = mse_loss + 10.0 * velocity_loss
-            loss.backward()
-            optimizer.step()
+            loss = mse_loss + 10.0 * velocity_loss # 速度損失に重みをつけることで、位置の予測だけでなく、動きのダイナミクスも学習できるようにするための工夫です。
+            loss.backward() # 勾配を計算
+            optimizer.step() # パラメータを更新
             total_loss += loss.item() * batch_size
             total_mse  += mse_loss.item() * batch_size
             total_vel  += velocity_loss.item() * batch_size
         avg_loss = total_loss / len(dataset)
         avg_mse  = total_mse  / len(dataset)
         avg_vel  = total_vel  / len(dataset)
-        scheduler_lr.step()
+        scheduler_lr.step() # 学習率を更新
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.4f}  MSE: {avg_mse:.4f}  Vel: {avg_vel:.4f}")
-        if (epoch + 1) % 5000 == 0:
+        if (epoch + 1) % 5000 == 0: # 5000エポックごとにモデルを保存する
             os.makedirs(save_path, exist_ok=True)
             torch.save(model.state_dict(), f"{save_path}/mdm_epoch{epoch+1}.pth")
             torch.save({'mean': dataset.mean, 'std': dataset.std}, f"{save_path}/norm_stats.pt")
